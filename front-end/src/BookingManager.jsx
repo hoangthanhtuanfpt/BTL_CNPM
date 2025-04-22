@@ -82,7 +82,9 @@ export default function BookingManager() {
             >
               Trang chủ
             </button>
-            <button className="ml-4 flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200">
+            <button className="ml-4 flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
+            onClick={() => navigate("/finding-room")}
+            >
               Tìm chỗ
             </button>
             <button
@@ -91,7 +93,9 @@ export default function BookingManager() {
             >
               Quản lý đặt chỗ
             </button>
-            <button className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200">
+            <button className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
+            onClick={() => navigate("/FeedbackForm")}
+            >
               Báo cáo
             </button>
             <button className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200">

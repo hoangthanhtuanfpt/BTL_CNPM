@@ -10,12 +10,14 @@ export default function FindingRoom() {
     floor: "Tất cả",
     type: "Tất cả",
     date: "",
-    time: "",
+    startTime: "",
+    endTime: "",
     equipment: "Tất cả",
   });
 
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -46,12 +48,67 @@ export default function FindingRoom() {
 
   const handleFilterChange = (name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
+    setValidationError(""); // Clear validation error when filters change
+  };
+
+  const validateDateTime = () => {
+    if (!filters.date) {
+      setValidationError("Vui lòng chọn ngày đặt phòng");
+      return false;
+    }
+    if (!filters.time) {
+      setValidationError("Vui lòng chọn thời gian đặt phòng");
+      return false;
+    }
+
+    // Validate date is not in the past
+    const selectedDate = new Date(filters.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      setValidationError("Không thể đặt phòng cho ngày trong quá khứ");
+      return false;
+    }
+
+    // If date is today, validate time is not in the past
+    if (selectedDate.getTime() === today.getTime()) {
+      const currentTime = new Date();
+      const [hours, minutes] = filters.time.split(':');
+      const selectedTime = new Date();
+      selectedTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      if (selectedTime < currentTime) {
+        setValidationError("Không thể đặt phòng cho thời gian đã qua");
+        return false;
+      }
+    }
+
+    return true;
+  };
+  const calculateEndTime = (startTime) => {
+    if (!startTime) return "";
+    
+    const [hours, minutes] = startTime.split(':').map(Number);
+    let endHours = hours + 1;  // Assuming 1-hour bookings
+    
+    // Handle hour overflow
+    if (endHours >= 24) {
+      endHours = endHours - 24;
+    }
+    
+    return `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   };
 
   const handleCheckAvailability = async (roomId) => {
     const token = localStorage.getItem("access_token");
     if (!token) {
       toast.error("Bạn cần đăng nhập để kiểm tra phòng");
+      return;
+    }
+
+    if (!validateDateTime()) {
+      toast.error(validationError);
       return;
     }
 
@@ -63,9 +120,10 @@ export default function FindingRoom() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          roomId,
+          room_id: roomId,  // Changed from roomId to room_id to match backend
           date: filters.date,
-          time: filters.time,
+          start_time: filters.time,  // Changed from time to start_time
+          end_time: calculateEndTime(filters.time)  // Need to calculate end time
         }),
       });
 
@@ -73,7 +131,17 @@ export default function FindingRoom() {
       if (res.ok) {
         if (data.available) {
           toast.success("Phòng có sẵn để đặt!");
-          navigate("/room-details", { state: { roomId, date: filters.date, time: filters.time } });
+          navigate("/room-details", { 
+            state: { 
+              roomId, 
+              date: filters.date, 
+              start_time: filters.time,
+              end_time: calculateEndTime(filters.time),  // Add this line
+              building: filters.building,
+              floor: filters.floor,
+              type: filters.type
+            } 
+          });
         } else {
           toast.error("Phòng không có sẵn trong thời gian này");
         }
@@ -87,12 +155,24 @@ export default function FindingRoom() {
   };
 
   const filteredRooms = rooms.filter((room) => {
-    return (
-      (filters.building === "Tất cả" || room.building === filters.building) &&
-      (filters.floor === "Tất cả" || room.floor === parseInt(filters.floor)) &&
-      (filters.type === "Tất cả" || room.room_type === (filters.type === "Nhóm" ? "group" : "single")) &&
-      (filters.equipment === "Tất cả" || room.devices?.includes(filters.equipment))
-    );
+    const matchesBuilding = filters.building === "Tất cả" || room.building === filters.building;
+    const matchesFloor = filters.floor === "Tất cả" || room.floor === parseInt(filters.floor);
+    const matchesType = filters.type === "Tất cả" || 
+                       (filters.type === "Nhóm" ? room.room_type === "group" : 
+                        filters.type === "Đơn" ? room.room_type === "single" : false);
+    
+    // Handle devices array or string
+    const roomDevices = typeof room.devices === 'string' 
+      ? room.devices.split(',').map(d => d.trim())
+      : Array.isArray(room.devices) 
+        ? room.devices 
+        : [];
+    
+    const matchesEquipment = filters.equipment === "Tất cả" || 
+                            roomDevices.some(device => 
+                              device.toLowerCase().includes(filters.equipment.toLowerCase()));
+
+    return matchesBuilding && matchesFloor && matchesType && matchesEquipment;
   });
 
   return (

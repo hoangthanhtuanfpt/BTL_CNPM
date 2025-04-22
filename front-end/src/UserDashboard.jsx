@@ -8,6 +8,7 @@ export default function UserDashboard() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [availableRooms, setAvailableRooms] = useState(0);
   
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -25,6 +26,9 @@ export default function UserDashboard() {
       if (res.ok) {
         const data = await res.json();
         setRooms(data.data || []);
+        // Calculate available rooms
+        const available = data.data?.filter(room => room.room_status === "Available").length || 0;
+        setAvailableRooms(available);
       } else {
         toast.error("Không thể tải danh sách phòng");
       }
@@ -58,7 +62,7 @@ export default function UserDashboard() {
       const data = await res.json();
       if (res.ok) {
         toast.success("Đặt chỗ thành công!");
-        fetchRooms(); // Refresh room data
+        fetchRooms();
       } else {
         toast.error(data.message || "Không thể đặt chỗ");
       }
@@ -73,226 +77,189 @@ export default function UserDashboard() {
   };
   
   return (
-    <div className="justify-center min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100">
       {/* Background image with blur */}
       <div
-        className="inset-0 bg-cover bg-center absolute"
+        className="fixed inset-0 bg-cover bg-center"
         style={{
           backgroundImage: `url(${bg})`,
           filter: "blur(3px)",
-          zIndex: 1,
+          zIndex: -1,
         }}
       ></div>
       
       {/* Main content */}
-      <div className="relative p-4 z-10">
+      <div className="relative z-10">
         {/* Header */}
-        <div className="flex flex-grow items-center space-x-4 mb-4">
-          <div className="w-30% h-24 bg-white bg-opacity-15 p-4 shadow-lg rounded-lg border-2 border-gray-400 flex flex-col justify-center mr-8">
-            <p className="font-bold text-2xl">Smart Study Space Management &</p>
-            <p className="font-bold text-2xl">Reservation System at HCMUT</p>
-          </div>
-          <div className="flex-grow flex">
-            <Link
-              to="/main"
-              className="flex-grow bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200"
-            >
-              {" "}
-              Trang chủ
-            </Link>
-            <Link
-              to="/finding-room"
-              className="ml-4 flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
-            >
-              {" "}
-              Tìm chỗ
-            </Link>
-            <Link
-              to="/booking-manager"
-              className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
-            >
-              {" "}
-              Quản lý đặt chỗ
-            </Link>
-            <Link
-              to="/reports"
-              className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
-            >
-              {" "}
-              Báo cáo
-            </Link>
-            <Link
-              to="/support"
-              className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
-            >
-              {" "}
-              Hỗ trợ
-            </Link>
-            <div className="relative">
-              <button
-                onClick={toggleUserMenu}
-                className="bg-black hover:bg-gray-100 hover:text-black text-white py-2 px-8 rounded-2xl transition duration-200"
-              >
-                <i className="fas fa-user"></i>
-              </button>
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2">
-                  <button
-                    onClick={() => navigate("/UserProfile")}
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                  >
-                    Hồ sơ
-                  </button>
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem("access_token");
-                      localStorage.removeItem("user_info");
-                      navigate("/");
-                    }}
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
-                  >
-                    Đăng xuất
-                  </button>
-                </div>
-              )}
+        <div className="bg-gray-800 bg-opacity-70 p-4">
+          <div className="container mx-auto flex items-center justify-between">
+            <div className="text-white">
+              <h1 className="text-2xl font-bold">Smart Study Space Management</h1>
+              <p className="text-sm">HCMUT Reservation System</p>
             </div>
-          </div>
-        </div>
-        
-        {/* Dashboard content */}
-        <div className="flex space-x-4 h-48 mt-16 ml-8">
-          <div className="w-5/12 font-medium bg-white p-4 shadow-lg rounded-lg mr-60 bg-opacity-15">
-            {/* Summary and management box */}
-            <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full">
-              {/* Room count */}
-              <div className="text-white text-center text-lg flex flex-col items-center justify-center col-span-1 row-span-1">
-                <p>Số phòng trống</p>
-                <p className="text-3xl font-bold">100</p>
+            <div className="flex items-center space-x-6">
+              <Link to="/main" className="text-white hover:text-blue-300 transition">Trang chủ</Link>
+              <Link to="/finding-room" className="text-white hover:text-blue-300 transition">Tìm chỗ</Link>
+              <Link to="/booking-manager" className="text-white hover:text-blue-300 transition">Quản lý đặt chỗ</Link>
+              <Link to="/reports" className="text-white hover:text-blue-300 transition">Báo cáo</Link>
+              <Link to="/support" className="text-white hover:text-blue-300 transition">Hỗ trợ</Link>
+              <div className="relative">
+                <button
+                  onClick={toggleUserMenu}
+                  className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full transition"
+                >
+                  <i className="fas fa-user"></i>
+                </button>
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2">
+                    <Link
+                      to="/UserProfile"
+                      className="block px-4 py-2 text-gray-800 hover:bg-gray-100"
+                    >
+                      Hồ sơ
+                    </Link>
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem("access_token");
+                        localStorage.removeItem("user_info");
+                        navigate("/");
+                      }}
+                      className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+                    >
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
               </div>
-              
-              {/* Management buttons */}
-              <Link
-                to="/room-management"
-                className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 col-span-1 row-span-1 flex items-center justify-center"
-              >
-                Quản lý phòng
-              </Link>
-              <Link
-                to="/my-bookings"
-                className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 col-span-1 row-span-1 flex flex-col items-center justify-center"
-              >
-                <span>Đặt chỗ của tôi</span>
-                <span>4</span>
-              </Link>
-              <Link
-                to="/booking-history"
-                className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 col-span-1 row-span-1 flex items-center justify-center"
-              >
-                Lịch sử đặt chỗ
-              </Link>
-            </div>
-          </div>
-          
-          {/* Featured room */}
-          <div className="flex w-1/3 bg-white bg-opacity-15 p-4 shadow-lg rounded-lg grid grid-cols-2 font-medium">
-            <div className="ml-4 text-white col-span-1 grid grid-row-6">
-              <p className="text-white row-span-1 font-medium">
-                {" "}
-                Phòng: 334 - H1
-              </p>
-              <br />
-              <p>Tầng: 3</p>
-              <p className="bg-green-200 text-black text-center w-12 col-span-1">
-                Trống
-              </p>
-              <p>Loại: Đơn</p>
-              <p>Còn trống: 3 vị trí</p>
-              <p>Thiết bị: Ổ cắm</p>
-            </div>
-            <div className="flex justify-center">
-              <button className="bg-blue-500 hover:bg-blue-700 text-white rounded-lg px-6 font-medium transition duration-200 h-[66px]">
-                Đặt chỗ ngay
-              </button>
             </div>
           </div>
         </div>
-        
-        {/* Room cards */}
-        <div className="flex space-x-20 mt-4 mt-40 h-48">
+
+        {/* Dashboard Stats */}
+        <div className="container mx-auto mt-8 px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Available Rooms Card */}
+            <div className="bg-white bg-opacity-90 rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-semibold mb-2">Phòng trống</h3>
+              <p className="text-3xl font-bold text-blue-600">{availableRooms}</p>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-white bg-opacity-90 rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-semibold mb-4">Thao tác nhanh</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <Link
+                  to="/finding-room"
+                  className="bg-blue-500 text-white p-3 rounded-lg text-center hover:bg-blue-600 transition"
+                >
+                  Tìm phòng
+                </Link>
+                <Link
+                  to="/booking-manager"
+                  className="bg-green-500 text-white p-3 rounded-lg text-center hover:bg-green-600 transition"
+                >
+                  Đặt chỗ của tôi
+                </Link>
+              </div>
+            </div>
+
+            {/* Support Card */}
+            <div className="bg-white bg-opacity-90 rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-semibold mb-4">Hỗ trợ</h3>
+              <Link
+                to="/support"
+                className="block bg-purple-500 text-white p-3 rounded-lg text-center hover:bg-purple-600 transition"
+              >
+                Liên hệ hỗ trợ
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Room List */}
+        <div className="container mx-auto mt-8 px-4 pb-8">
+          <h2 className="text-2xl font-bold text-white mb-6">Danh sách phòng</h2>
           {loading ? (
             <div className="text-center text-white text-xl">Đang tải...</div>
           ) : (
-            rooms.map((room) => (
-              <div
-                key={room.room_id}
-                className="flex w-1/3 bg-white bg-opacity-15 p-4 shadow-lg rounded-lg grid grid-cols-2 font-medium"
-              >
-                <div className="text-white col-span-1 grid grid-row-6">
-                  <p className="text-white row-span-1 font-medium">
-                    {" "}
-                    Phòng: {room.location} - {room.building}
-                  </p>
-                  <br />
-                  <p>Tầng: {room.floor}</p>
-                  <p className={`inline-block px-3 py-1 rounded-full ${
-                    room.room_status === "Available"
-                      ? "bg-green-500"
-                      : room.room_status === "Occupied"
-                      ? "bg-red-500"
-                      : "bg-yellow-500"
-                  }`}>
-                    {room.room_status === "Available"
-                      ? "Trống"
-                      : room.room_status === "Occupied"
-                      ? "Đã đầy"
-                      : "Bảo trì"}
-                  </p>
-                  <p>Loại: {room.room_type === "group" ? "Nhóm" : "Đơn"}</p>
-                  <p>Còn trống: {room.available_seats} vị trí</p>
-                  <p>Thiết bị: {room.devices || "Không có"}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {rooms.map((room) => (
+                <div
+                  key={room.room_id}
+                  className="bg-white bg-opacity-90 rounded-lg shadow-lg p-6"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-xl font-semibold">
+                        Phòng {room.location} - {room.building}
+                      </h3>
+                      <p className="text-gray-600">Tầng {room.floor}</p>
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm ${
+                        room.room_status === "Available"
+                          ? "bg-green-100 text-green-800"
+                          : room.room_status === "Occupied"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {room.room_status === "Available"
+                        ? "Trống"
+                        : room.room_status === "Occupied"
+                        ? "Đã đầy"
+                        : "Bảo trì"}
+                    </span>
+                  </div>
+                  <div className="space-y-2 mb-4">
+                    <p><span className="font-medium">Loại:</span> {room.room_type === "group" ? "Nhóm" : "Đơn"}</p>
+                    <p><span className="font-medium">Còn trống:</span> {room.available_seats} vị trí</p>
+                    <p><span className="font-medium">Thiết bị:</span> {room.devices || "Không có"}</p>
+                  </div>
+                  <div className="flex space-x-3">
+                    <button
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
+                        room.room_status === "Available"
+                          ? "bg-blue-500 hover:bg-blue-600 text-white"
+                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      }`}
+                      onClick={() => room.room_status === "Available" && handleBookNow(room.room_id)}
+                      disabled={room.room_status !== "Available"}
+                    >
+                      Đặt chỗ ngay
+                    </button>
+                    <button
+                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition"
+                      onClick={() => navigate("/room-details", { state: { roomId: room.room_id } })}
+                    >
+                      Chi tiết
+                    </button>
+                  </div>
                 </div>
-                <div className="flex justify-center">
-                  <button
-                    className={`flex-1 bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 ${
-                      room.room_status !== "Available" ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                    onClick={() => handleBookNow(room.room_id)}
-                    disabled={room.room_status !== "Available"}
-                  >
-                    Đặt chỗ ngay
-                  </button>
-                  <button
-                    className="flex-1 bg-gray-500 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200"
-                    onClick={() => navigate("/room-details", { state: { roomId: room.room_id } })}
-                  >
-                    Chi tiết
-                  </button>
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </div>
-      
+
       {/* Footer */}
-      <div className="bottom-0 left-0 right-0 text-center text-white z-10 bg-gray-600 mt-20">
-        <br />
-        <p className="text-xs text-left ml-6 text-gray-300">Tổ kỹ thuật P.DT / Technician</p>
-        <p className="text-xs text-left ml-6 text-gray-300">ĐT (Tel.) : (84-8) 38647256 - 5258</p>
-        <p className="text-xs text-left ml-6 text-gray-300">
-          Quý Thầy/Cô chưa có tài khoản(hoặc quên mật khẩu) nhà trường vui lòng liên hệ Trung tâm Dữ liệu & Công nghệ
-          Thông tin, phòng 109A5 để được hỗ trợ.
-        </p>
-        <p className="text-xs text-left ml-6 text-gray-300">Email: ddthu@hcmut.edu.vn </p>
-        <p className="text-xs text-left ml-6 text-gray-300">
-          (For HCMUT account, please contact to : Data and Information Technology Center)
-        </p>
-        <p className="text-xs text-left ml-6 text-gray-300">Email : dl-cntt@hcmut.edu.vn</p>
-        <p className="text-xs text-left ml-6 text-gray-300">
-          (For HCMUT account, please contact to : Data and Information Technology Center)
-        </p>
-        <p className="text-xs text-left ml-6 text-gray-300">ĐT (Tel.) : (84-8) 38647256 - 5200</p>
-      </div>
+      <footer className="bg-gray-800 text-white py-6 mt-8">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Liên hệ</h4>
+              <p className="text-sm text-gray-300">Email: ddthu@hcmut.edu.vn</p>
+              <p className="text-sm text-gray-300">ĐT (Tel.): (84-8) 38647256 - 5258</p>
+            </div>
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Hỗ trợ kỹ thuật</h4>
+              <p className="text-sm text-gray-300">Trung tâm Dữ liệu & Công nghệ Thông tin</p>
+              <p className="text-sm text-gray-300">Email: dl-cntt@hcmut.edu.vn</p>
+              <p className="text-sm text-gray-300">ĐT (Tel.): (84-8) 38647256 - 5200</p>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -173,7 +173,7 @@ export default function MainPage() {
             </button>
             <button 
               className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
-              onClick={() => navigate("/reports")}
+              onClick={() => navigate("/FeedbackForm")}
             >
               Báo cáo
             </button>
