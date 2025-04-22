@@ -1,8 +1,10 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import bg from "./assets/Mainpage.jpg";
+import toast from 'react-hot-toast';
 
 export default function FindingRoom() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState({
     building: "Tất cả",
     floor: "Tất cả",
@@ -12,19 +14,86 @@ export default function FindingRoom() {
     equipment: "Tất cả",
   });
 
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      navigate("/");
+      return;
+    }
+    fetchRooms();
+  }, [navigate]);
+
+  const fetchRooms = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/allroom");
+      if (res.ok) {
+        const data = await res.json();
+        setRooms(data.data || []);
+      } else {
+        toast.error("Không thể tải danh sách phòng");
+      }
+    } catch (error) {
+      console.error("Error fetching rooms:", error);
+      toast.error("Lỗi khi tải danh sách phòng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFilterChange = (name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Mock room data
-  const rooms = [
-    { id: 1, number: "234", building: "H1", floor: 3, status: "Trống", type: "Đơn", available: 3, equipment: "Ổ cắm" },
-    { id: 2, number: "234", building: "H1", floor: 3, status: "Đã đầy", type: "Đơn", available: 0, equipment: "Ổ cắm" },
-    { id: 3, number: "234", building: "H1", floor: 3, status: "Trống", type: "Đơn", available: 3, equipment: "Ổ cắm" },
-    { id: 4, number: "234", building: "H1", floor: 3, status: "Trống", type: "Đơn", available: 3, equipment: "Ổ cắm" },
-    { id: 5, number: "234", building: "H1", floor: 3, status: "Trống", type: "Nhóm", available: 3, equipment: "Ổ cắm" },
-    { id: 6, number: "234", building: "H1", floor: 3, status: "Đã đầy", type: "Đơn", available: 0, equipment: "Ổ cắm" },
-  ];
+  const handleCheckAvailability = async (roomId) => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      toast.error("Bạn cần đăng nhập để kiểm tra phòng");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/check-availability", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          roomId,
+          date: filters.date,
+          time: filters.time,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        if (data.available) {
+          toast.success("Phòng có sẵn để đặt!");
+          navigate("/room-details", { state: { roomId, date: filters.date, time: filters.time } });
+        } else {
+          toast.error("Phòng không có sẵn trong thời gian này");
+        }
+      } else {
+        toast.error(data.message || "Không thể kiểm tra tình trạng phòng");
+      }
+    } catch (error) {
+      console.error("Error checking availability:", error);
+      toast.error("Lỗi khi kiểm tra tình trạng phòng");
+    }
+  };
+
+  const filteredRooms = rooms.filter((room) => {
+    return (
+      (filters.building === "Tất cả" || room.building === filters.building) &&
+      (filters.floor === "Tất cả" || room.floor === parseInt(filters.floor)) &&
+      (filters.type === "Tất cả" || room.room_type === (filters.type === "Nhóm" ? "group" : "single")) &&
+      (filters.equipment === "Tất cả" || room.devices?.includes(filters.equipment))
+    );
+  });
 
   return (
     <div className="justify-center min-h-screen bg-gray-100">
@@ -138,8 +207,7 @@ export default function FindingRoom() {
             <div>
               <label className="block text-sm font-medium mb-1">Ngày</label>
               <input
-                type="text"
-                placeholder="NN/NN/NNN"
+                type="date"
                 className="w-full p-2 border border-gray-300 rounded-md"
                 value={filters.date}
                 onChange={(e) => handleFilterChange("date", e.target.value)}
@@ -148,8 +216,7 @@ export default function FindingRoom() {
             <div>
               <label className="block text-sm font-medium mb-1">Thời gian</label>
               <input
-                type="text"
-                placeholder="--:-- --"
+                type="time"
                 className="w-full p-2 border border-gray-300 rounded-md"
                 value={filters.time}
                 onChange={(e) => handleFilterChange("time", e.target.value)}
@@ -172,37 +239,52 @@ export default function FindingRoom() {
         </div>
 
         {/* Room cards grid */}
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          {rooms.map((room) => (
-            <div key={room.id} className="bg-white bg-opacity-15 p-4 shadow-lg rounded-lg grid grid-cols-2 font-medium">
-              <div className="text-white col-span-1 grid grid-row-6">
-                <p className="text-white row-span-1 font-medium">
-                  {" "}
-                  Chỗ: {room.number} - {room.building}
-                </p>
-                <br />
-                <p>Tầng: {room.floor}</p>
-                <p className={`${room.status === "Trống" ? "bg-green-200" : "bg-red-200"} text-black text-center w-12 col-span-1`}>
-                  <p className="text-center text-lg flex items-center justify-center"></p>
-                  {room.status}
-                </p>
-                <p>Loại: {room.type}</p>
-                <p>Còn trống: {room.available} vị trí</p>
-                <p>Thiết bị: {room.equipment}</p>
+        {loading ? (
+          <div className="text-center text-white text-xl">Đang tải...</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredRooms.map((room) => (
+              <div
+                key={room.room_id}
+                className="bg-white bg-opacity-15 p-6 rounded-lg shadow-lg"
+              >
+                <div className="text-white space-y-2">
+                  <h3 className="text-xl font-bold">
+                    Phòng {room.location} - {room.building}
+                  </h3>
+                  <p>Tầng: {room.floor}</p>
+                  <p>Loại: {room.room_type === "group" ? "Nhóm" : "Đơn"}</p>
+                  <p>Số chỗ trống: {room.available_seats}</p>
+                  <p>Thiết bị: {room.devices || "Không có"}</p>
+                  <p className={`inline-block px-3 py-1 rounded-full ${
+                    room.room_status === "Available"
+                      ? "bg-green-500"
+                      : room.room_status === "Occupied"
+                      ? "bg-red-500"
+                      : "bg-yellow-500"
+                  }`}>
+                    {room.room_status === "Available"
+                      ? "Trống"
+                      : room.room_status === "Occupied"
+                      ? "Đã đầy"
+                      : "Bảo trì"}
+                  </p>
+                </div>
+                <div className="mt-4">
+                  <button
+                    className={`w-full bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 ${
+                      room.room_status !== "Available" ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    onClick={() => handleCheckAvailability(room.room_id)}
+                    disabled={room.room_status !== "Available"}
+                  >
+                    Kiểm tra & Đặt chỗ
+                  </button>
+                </div>
               </div>
-              <div className="flex justify-center">
-                <Link
-                  to="/room-details"
-                  className={`bg-blue-500 hover:bg-blue-700 text-white rounded-lg px-6 font-medium transition duration-200 h-[66px] flex items-center ${
-                    room.status === "Đã đầy" ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                >
-                  Đặt chỗ ngay
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Footer */}

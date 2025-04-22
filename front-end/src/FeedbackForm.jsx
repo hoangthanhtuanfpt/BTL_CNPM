@@ -1,22 +1,87 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import bg from "./assets/Mainpage.jpg";
+import toast from 'react-hot-toast';
 
 export default function FeedbackForm() {
+  const navigate = useNavigate();
   const [selectedLocation, setSelectedLocation] = useState("");
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      navigate("/");
+      return;
+    }
+    fetchRooms();
+  }, [navigate]);
+
+  const fetchRooms = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/allroom");
+      if (res.ok) {
+        const data = await res.json();
+        setRooms(data.data || []);
+      } else {
+        toast.error("Không thể tải danh sách phòng");
+      }
+    } catch (error) {
+      console.error("Error fetching rooms:", error);
+      toast.error("Lỗi khi tải danh sách phòng");
+    } finally {
+      setLoading(false);
+    }
+  };
   
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Xử lý gửi đánh giá
-    setShowSuccess(true);
     
-    // Sau 3 giây, ẩn thông báo thành công
-    setTimeout(() => {
-      setShowSuccess(false);
-    }, 3000);
+    if (!selectedLocation) {
+      toast.error("Vui lòng chọn vị trí");
+      return;
+    }
+
+    if (rating === 0) {
+      toast.error("Vui lòng đánh giá mức độ hài lòng");
+      return;
+    }
+
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      toast.error("Bạn cần đăng nhập để gửi đánh giá");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          roomId: selectedLocation,
+          rating,
+          comment,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success("Cảm ơn bạn đã gửi đánh giá!");
+        navigate("/FeedbackSuccess");
+      } else {
+        const data = await res.json();
+        toast.error(data.message || "Không thể gửi đánh giá");
+      }
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      toast.error("Lỗi khi gửi đánh giá");
+    }
   };
   
   const handleRatingClick = (value) => {
@@ -44,47 +109,47 @@ export default function FeedbackForm() {
             <p className="font-bold text-2xl">Reservation System at HCMUT</p>
           </div>
           <div className="flex-grow flex">
-            <Link
-              to="/main"
+            <button
+              onClick={() => navigate("/main")}
               className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
             >
               {" "}
               Trang chủ
-            </Link>
-            <Link
-              to="/finding-room"
+            </button>
+            <button
+              onClick={() => navigate("/finding-room")}
               className="ml-4 flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
             >
               {" "}
               Tìm phòng
-            </Link>
-            <Link
-              to="/booking-manager"
+            </button>
+            <button
+              onClick={() => navigate("/booking-manager")}
               className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
             >
               {" "}
               Quản lý đặt chỗ
-            </Link>
-            <Link
-              to="/reports"
+            </button>
+            <button
+              onClick={() => navigate("/reports")}
               className="flex-grow bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200"
             >
               {" "}
               Báo cáo
-            </Link>
-            <Link
-              to="/support"
+            </button>
+            <button
+              onClick={() => navigate("/support")}
               className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
             >
               {" "}
               Hỗ trợ
-            </Link>
-            <Link
-              to="/profile"
+            </button>
+            <button
+              onClick={() => navigate("/profile")}
               className="bg-black hover:bg-gray-100 hover:text-black text-white py-2 px-8 rounded-2xl transition duration-200 mr-10"
             >
               <i className="fas fa-user"></i>
-            </Link>
+            </button>
           </div>
         </div>
         
@@ -104,70 +169,63 @@ export default function FeedbackForm() {
           </div>
           
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Location */}
-            <div>
-              <label className="block text-white mb-2">Vị trí:</label>
-              <select
-                className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded-md"
-                value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
-              >
-                <option value="">-- Chọn vị trí --</option>
-                <option value="h1-334-1">H1 - Phòng 334 - Vị trí 1</option>
-                <option value="h1-334-2">H1 - Phòng 334 - Vị trí 2</option>
-                <option value="h1-334-3">H1 - Phòng 334 - Vị trí 3</option>
-              </select>
-            </div>
-            
-            {/* Rating */}
-            <div>
-              <label className="block text-white mb-2">Mức độ hài lòng</label>
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => handleRatingClick(star)}
-                    className="text-3xl focus:outline-none"
-                  >
-                    {star <= rating ? "★" : "☆"}
-                  </button>
-                ))}
+          {loading ? (
+            <div className="text-center text-white text-xl">Đang tải...</div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-white mb-2">Vị trí:</label>
+                <select
+                  className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded-md"
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                >
+                  <option value="">-- Chọn vị trí --</option>
+                  {rooms.map((room) => (
+                    <option key={room.room_id} value={room.room_id}>
+                      {room.building} - Phòng {room.location}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
-            
-            {/* Comment */}
-            <div>
-              <label className="block text-white mb-2">Nhận xét</label>
-              <textarea
-                className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded-md h-32"
-                placeholder="Thêm nhận xét của bạn...."
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-              ></textarea>
-            </div>
-            
-            {/* Submit Button */}
-            <div>
+              
+              <div>
+                <label className="block text-white mb-2">Mức độ hài lòng</label>
+                <div className="flex space-x-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => handleRatingClick(star)}
+                      className={`text-3xl focus:outline-none transition-colors ${
+                        star <= rating ? "text-yellow-400" : "text-gray-400"
+                      }`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-white mb-2">Nhận xét</label>
+                <textarea
+                  className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded-md h-32"
+                  placeholder="Thêm nhận xét của bạn...."
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                ></textarea>
+              </div>
+              
               <button
                 type="submit"
-                className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-md"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg font-medium transition duration-200"
               >
                 Gửi đánh giá
               </button>
-            </div>
-          </form>
+            </form>
+          )}
         </div>
-        
-        {/* Success Popup */}
-        {showSuccess && (
-          <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-blue-500 text-white p-8 rounded-lg shadow-lg text-center">
-              <h2 className="text-2xl font-bold">Thành công</h2>
-            </div>
-          </div>
-        )}
       </div>
       
       {/* Footer */}

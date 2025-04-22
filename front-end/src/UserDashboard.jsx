@@ -1,16 +1,72 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import bg from "./assets/Mainpage.jpg";
+import toast from 'react-hot-toast';
 
 export default function UserDashboard() {
+  const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(false);
   
-  // Mock room data
-  const rooms = [
-    { id: 1, number: "334", building: "H1", floor: 3, status: "Trống", type: "Đơn", available: 3, equipment: "Ổ cắm" },
-    { id: 2, number: "334", building: "H1", floor: 3, status: "Trống", type: "Đơn", available: 7, equipment: "Ổ cắm" },
-    { id: 3, number: "334", building: "H1", floor: 3, status: "Trống", type: "Nhóm", available: 3, equipment: "Ổ cắm" },
-  ];
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      navigate("/");
+      return;
+    }
+    fetchRooms();
+  }, [navigate]);
+
+  const fetchRooms = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/allroom");
+      if (res.ok) {
+        const data = await res.json();
+        setRooms(data.data || []);
+      } else {
+        toast.error("Không thể tải danh sách phòng");
+      }
+    } catch (error) {
+      console.error("Error fetching rooms:", error);
+      toast.error("Lỗi khi tải danh sách phòng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBookNow = async (roomId) => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      toast.error("Bạn cần đăng nhập để đặt chỗ");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/booking/book-now", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          roomId
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Đặt chỗ thành công!");
+        fetchRooms(); // Refresh room data
+      } else {
+        toast.error(data.message || "Không thể đặt chỗ");
+      }
+    } catch (error) {
+      console.error("Error booking room:", error);
+      toast.error("Lỗi khi đặt chỗ");
+    }
+  };
   
   const toggleUserMenu = () => {
     setShowUserMenu(!showUserMenu);
@@ -72,34 +128,36 @@ export default function UserDashboard() {
               {" "}
               Hỗ trợ
             </Link>
-            <button
-              onClick={toggleUserMenu}
-              className="bg-black hover:bg-gray-100 hover:text-black text-white py-2 px-8 rounded-2xl transition duration-200 mr-10"
-            >
-              <i className="fas fa-user"></i>
-            </button>
-          </div>
-        </div>
-        
-        {/* User menu popup */}
-        {showUserMenu && (
-          <div className="absolute right-10 top-24 bg-white rounded-lg shadow-lg p-6 z-20">
-            <div className="flex justify-between gap-4">
-              <Link
-                to="/profile"
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+            <div className="relative">
+              <button
+                onClick={toggleUserMenu}
+                className="bg-black hover:bg-gray-100 hover:text-black text-white py-2 px-8 rounded-2xl transition duration-200"
               >
-                Thông tin
-              </Link>
-              <Link
-                to="/"
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-              >
-                Đăng xuất
-              </Link>
+                <i className="fas fa-user"></i>
+              </button>
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2">
+                  <button
+                    onClick={() => navigate("/UserProfile")}
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                  >
+                    Hồ sơ
+                  </button>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem("access_token");
+                      localStorage.removeItem("user_info");
+                      navigate("/");
+                    }}
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                  >
+                    Đăng xuất
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-        )}
+        </div>
         
         {/* Dashboard content */}
         <div className="flex space-x-4 h-48 mt-16 ml-8">
@@ -161,29 +219,58 @@ export default function UserDashboard() {
         
         {/* Room cards */}
         <div className="flex space-x-20 mt-4 mt-40 h-48">
-          {rooms.map((room) => (
-            <div key={room.id} className="flex w-1/3 bg-white bg-opacity-15 p-4 shadow-lg rounded-lg grid grid-cols-2 font-medium">
-              <div className="text-white col-span-1 grid grid-row-6">
-                <p className="text-white row-span-1 font-medium">
-                  {" "}
-                  Phòng: {room.number} - {room.building}
-                </p>
-                <br />
-                <p>Tầng: {room.floor}</p>
-                <p className="bg-green-200 text-black text-center w-12 col-span-1">
-                  {room.status}
-                </p>
-                <p>Loại: {room.type}</p>
-                <p>Còn trống: {room.available} vị trí</p>
-                <p>Thiết bị: {room.equipment}</p>
+          {loading ? (
+            <div className="text-center text-white text-xl">Đang tải...</div>
+          ) : (
+            rooms.map((room) => (
+              <div
+                key={room.room_id}
+                className="flex w-1/3 bg-white bg-opacity-15 p-4 shadow-lg rounded-lg grid grid-cols-2 font-medium"
+              >
+                <div className="text-white col-span-1 grid grid-row-6">
+                  <p className="text-white row-span-1 font-medium">
+                    {" "}
+                    Phòng: {room.location} - {room.building}
+                  </p>
+                  <br />
+                  <p>Tầng: {room.floor}</p>
+                  <p className={`inline-block px-3 py-1 rounded-full ${
+                    room.room_status === "Available"
+                      ? "bg-green-500"
+                      : room.room_status === "Occupied"
+                      ? "bg-red-500"
+                      : "bg-yellow-500"
+                  }`}>
+                    {room.room_status === "Available"
+                      ? "Trống"
+                      : room.room_status === "Occupied"
+                      ? "Đã đầy"
+                      : "Bảo trì"}
+                  </p>
+                  <p>Loại: {room.room_type === "group" ? "Nhóm" : "Đơn"}</p>
+                  <p>Còn trống: {room.available_seats} vị trí</p>
+                  <p>Thiết bị: {room.devices || "Không có"}</p>
+                </div>
+                <div className="flex justify-center">
+                  <button
+                    className={`flex-1 bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 ${
+                      room.room_status !== "Available" ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    onClick={() => handleBookNow(room.room_id)}
+                    disabled={room.room_status !== "Available"}
+                  >
+                    Đặt chỗ ngay
+                  </button>
+                  <button
+                    className="flex-1 bg-gray-500 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200"
+                    onClick={() => navigate("/room-details", { state: { roomId: room.room_id } })}
+                  >
+                    Chi tiết
+                  </button>
+                </div>
               </div>
-              <div className="flex justify-center">
-                <button className="bg-blue-500 hover:bg-blue-700 text-white rounded-lg px-6 font-medium transition duration-200 h-[66px]">
-                  Đặt chỗ ngay
-                </button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
       

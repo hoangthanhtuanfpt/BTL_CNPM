@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import bg from "./assets/Mainpage.jpg";
 import { useNavigate } from "react-router-dom";
+import toast from 'react-hot-toast';
 
-function RoomBox({ data }) {
+function RoomBox({ data, onBookingSuccess }) {
   const handleBookNow = async () => {
     const token = localStorage.getItem("access_token");
     const student_info = JSON.parse(localStorage.getItem("user_info"));
     if (!token || !student_info) {
-      alert("Bạn cần đăng nhập để đặt chỗ.");
+      toast.error("Bạn cần đăng nhập để đặt chỗ.");
       return;
     }
 
@@ -25,16 +26,17 @@ function RoomBox({ data }) {
 
       const result = await res.json();
       if (res.ok) {
-        alert("Đặt chỗ thành công!");
+        toast.success("Đặt chỗ thành công!");
+        onBookingSuccess(); // Refresh room data after successful booking
       } else {
-        alert(`Lỗi: ${result.message || "Không thể đặt chỗ"}`);
+        toast.error(`Lỗi: ${result.message || "Không thể đặt chỗ"}`);
       }
     } catch (err) {
       console.error("Đặt chỗ thất bại:", err.message);
-      alert("Đặt chỗ thất bại.");
+      toast.error("Đặt chỗ thất bại.");
     }
   };
-  //tạm thời
+
   if (!data) return null;
   return (
     <div className="min-w-[150px] max-w-[600px] bg-gray-800 bg-opacity-80 p-4 shadow-lg rounded-lg grid grid-cols-2 font-medium h-48">
@@ -63,8 +65,11 @@ function RoomBox({ data }) {
       </div>
       <div className="flex justify-center items-center">
         <button
-          className="bg-blue-500 hover:bg-blue-700 text-white rounded-lg px-6 font-medium transition duration-200 h-[66px]"
+          className={`bg-blue-500 hover:bg-blue-700 text-white rounded-lg px-6 font-medium transition duration-200 h-[66px] ${
+            data.room_status !== "Available" ? "opacity-50 cursor-not-allowed" : ""
+          }`}
           onClick={handleBookNow}
+          disabled={data.room_status !== "Available"}
         >
           Đặt chỗ ngay
         </button>
@@ -76,48 +81,74 @@ function RoomBox({ data }) {
 export default function MainPage() {
   const [roomData, setRoomData] = useState([]);
   const [bookedData, setBookedData] = useState([]);
+  const navigate = useNavigate();
+
+  const fetchRoomData = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/available");
+      const respond = await res.json();
+      if (res.ok) {
+        setRoomData(respond.data || []);
+      } else {
+        toast.error("Không thể tải dữ liệu phòng");
+      }
+    } catch (error) {
+      console.error("Error fetching room data:", error.message);
+      toast.error("Lỗi khi tải dữ liệu phòng");
+    }
+  };
+
+  const fetchBookedData = async () => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("user_info"));
+      if (!userInfo?.mssv) {
+        console.log("No user info found");
+        return;
+      }
+
+      const res = await fetch(
+        `http://localhost:8080/api/v1/bookings/student/${userInfo.mssv}`
+      );
+
+      if (res.ok) {
+        const respond = await res.json();
+        setBookedData(respond.DT || []);
+      } else {
+        toast.error("Không thể tải dữ liệu đặt phòng");
+      }
+    } catch (error) {
+      console.error("Error fetching booked data:", error.message);
+      toast.error("Lỗi khi tải dữ liệu đặt phòng");
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch("http://localhost:8080/api/v1/available");
-        const respond = await res.json();
-        setRoomData(respond.data);
-        console.log(respond);
-      } catch (error) {
-        console.error("Error fetching data:", error.message);
-      }
-    };
-    fetchData();
-    const fetchBooked = async () => {
-      try {
-        const mssv = JSON.parse(localStorage.getItem("user_info"))?.mssv;
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      navigate("/");
+      return;
+    }
 
-        const res = await fetch(
-          `http://localhost:8080/api/v1/bookings/student/${mssv}`
-        );
+    fetchRoomData();
+    fetchBookedData();
+  }, [navigate]);
 
-        const respond = await res.json();
-        setBookedData(respond.DT);
-        console.log(respond);
-      } catch (error) {
-        console.error("Error fetching data:", error.message);
-      }
-    };
-    fetchBooked();
-  }, []);
-  const navigate = useNavigate();
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user_info");
+    navigate("/");
+  };
+
   return (
     <div
-      className="flex flex-col   min-h-screen bg-cover bg-center"
+      className="flex flex-col min-h-screen bg-cover bg-center"
       style={{
         backgroundImage: `url(${bg})`,
       }}
     >
       <div className="flex-grow items-center relative p-4 z-10 h-[80%]">
-        <div className="flex flex-grow items-center space-x-4 mb-4 ">
+        <div className="flex flex-grow items-center space-x-4 mb-4">
           <div className="w-30% h-24 bg-white bg-opacity-15 p-4 shadow-lg rounded-lg border-2 border-gray-400 flex flex-col justify-center mr-8">
-            {/*  top left box */}
             <p className="font-bold text-2xl">Smart Study Space Management &</p>
             <p className="font-bold text-2xl">Reservation System at HCMUT</p>
           </div>
@@ -126,71 +157,89 @@ export default function MainPage() {
               className="flex-grow bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200"
               onClick={() => navigate("/main")}
             >
-              {" "}
               Trang chủ
             </button>
-            <button className="ml-4 flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200">
-              {" "}
+            <button 
+              className="ml-4 flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
+              onClick={() => navigate("/finding-room")}
+            >
               Tìm chỗ
             </button>
             <button
               className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
               onClick={() => navigate("/booking-manager")}
             >
-              {" "}
               Quản lý đặt chỗ
             </button>
-            <button className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200">
-              {" "}
+            <button 
+              className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
+              onClick={() => navigate("/reports")}
+            >
               Báo cáo
             </button>
-            <button className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200">
-              {" "}
+            <button 
+              className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
+              onClick={() => navigate("/support")}
+            >
               Hỗ trợ
             </button>
-            <button className=" bg-black hover:bg-gray-100 hover:text-black text-white py-2 px-8 rounded-2xl transition duration-200 mr-10">
-              <i className="fas fa-user"></i>
-            </button>
+            <div className="relative">
+              <button 
+                className="bg-black hover:bg-gray-100 hover:text-black text-white py-2 px-8 rounded-2xl transition duration-200 mr-10"
+                onClick={() => navigate("/UserProfile")}
+              >
+                <i className="fas fa-user"></i>
+              </button>
+              <button
+                className="bg-red-500 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200"
+                onClick={handleLogout}
+              >
+                Đăng xuất
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Wrapper cho các box */}
-        {/* Hàng 1: 2 box */}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-8 mt-16  ">
-          {/* Hộp kiểm soát */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-8 mt-16">
           <div className="min-w-[150px] max-w-[600px] bg-gray-800 bg-opacity-80 p-4 shadow-lg rounded-lg h-48">
-            <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full ">
+            <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full">
               <p className="text-white text-center text-lg flex items-center justify-center col-span-1 row-span-1 font-medium">
                 Số phòng trống
                 <br />
                 {roomData.filter((r) => r.room_status === "Available").length}
               </p>
-              <button className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 col-span-1 row-span-1">
+              <button 
+                className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 col-span-1 row-span-1"
+                onClick={() => navigate("/UserDashboard")}
+              >
                 Quản lý phòng
               </button>
-              <button className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 col-span-1 row-span-1" onClick={()=>navigate("/booking-manager")}>
+              <button 
+                className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 col-span-1 row-span-1"
+                onClick={() => navigate("/booking-manager")}
+              >
                 Đặt chỗ của tôi
                 <br /> {bookedData.length}
               </button>
-              <button className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 col-span-1 row-span-1" onClick={()=>navigate("/history")}>
+              <button 
+                className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 col-span-1 row-span-1"
+                onClick={() => navigate("/history")}
+              >
                 Lịch sử đặt chỗ
               </button>
             </div>
           </div>
 
-          {/* Hộp phòng 1 */}
-          {roomData[0] && <RoomBox data={roomData[0]} />}
+          {roomData[0] && <RoomBox data={roomData[0]} onBookingSuccess={fetchRoomData} />}
         </div>
 
-        {/* Hàng 2: 3 hộp */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 px-8 mt-8">
           {roomData.slice(1).map((room, idx) => (
-            <RoomBox key={room.room_id || idx} data={room} />
+            <RoomBox key={room.room_id || idx} data={room} onBookingSuccess={fetchRoomData} />
           ))}
         </div>
       </div>
-      {/* Bot */}
+
       <div className="bottom-0 left-0 right-0 text-center text-white py-6 z-10 bg-gray-600">
         <p className="text-xs text-left ml-6 text-gray-300">
           Tổ kỹ thuật P.DT / Technician
@@ -203,8 +252,8 @@ export default function MainPage() {
           liên hệ Trung tâm Dữ liệu & Công nghệ Thông tin, phòng 109A5 để được
           hỗ trợ.
         </p>
-        <p className="text-xs text-left ml-6 text-gray-300 ">
-          Email: ddthu@hcmut.edu.vn{" "}
+        <p className="text-xs text-left ml-6 text-gray-300">
+          Email: ddthu@hcmut.edu.vn
         </p>
         <p className="text-xs text-left ml-6 text-gray-300">
           (For HCMUT account, please contact to : Data and Information
