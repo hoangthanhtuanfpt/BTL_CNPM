@@ -145,14 +145,14 @@ export default function BookingManager() {
                           <td className="px-4 py-2">{booking.status}</td>
                           <td className="px-4 py-2">
                             <button
-                              className="bg-blue-500 hover:bg-blue-700 text-white py-1 px-3 rounded"
-                              onClick={() => navigate("/current-room")}
+                              className="bg-blue-500 hover:bg-blue-700 text-white py-1 px-3 rounded mr-2"
+                              onClick={() => navigate(`/room-details/${booking.booking_id}`)}
                             >
                               Chi tiết
                             </button>
                             <button
                               className="bg-red-500 hover:bg-red-700 text-white py-1 px-3 rounded"
-                              onClick={() => handleCancel(booking.booking_id)} // Gọi API sau
+                              onClick={() => handleCancel(booking.booking_id)}
                             >
                               Hủy
                             </button>
