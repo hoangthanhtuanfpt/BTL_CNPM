@@ -77,21 +77,16 @@ export default function UserDashboard() {
   };
   
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Background image with blur */}
-      <div
-        className="fixed inset-0 bg-cover bg-center"
-        style={{
-          backgroundImage: `url(${bg})`,
-          filter: "blur(3px)",
-          zIndex: -1,
-        }}
-      ></div>
-      
+    <div className="min-h-screen" style={{ 
+      backgroundImage: `url(${bg})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed'
+    }}>
       {/* Main content */}
       <div className="relative z-10">
         {/* Header */}
-        <div className="bg-gray-800 bg-opacity-70 p-4">
+        <div className="backdrop-blur-sm bg-white/10 border border-white/20 shadow-lg p-4">
           <div className="container mx-auto flex items-center justify-between">
             <div className="text-white">
               <h1 className="text-2xl font-bold">Smart Study Space Management</h1>
@@ -111,10 +106,10 @@ export default function UserDashboard() {
                   <i className="fas fa-user"></i>
                 </button>
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2">
+                  <div className="absolute right-0 mt-2 w-48 backdrop-blur-md bg-white/70 border border-white/30 rounded-lg shadow-xl py-2">
                     <Link
                       to="/UserProfile"
-                      className="block px-4 py-2 text-gray-800 hover:bg-gray-100"
+                      className="block px-4 py-2 text-gray-800 hover:bg-white/40 transition"
                     >
                       Hồ sơ
                     </Link>
@@ -124,7 +119,7 @@ export default function UserDashboard() {
                         localStorage.removeItem("user_info");
                         navigate("/");
                       }}
-                      className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+                      className="block w-full text-left px-4 py-2 text-red-600 hover:bg-white/40 transition"
                     >
                       Đăng xuất
                     </button>
@@ -139,24 +134,24 @@ export default function UserDashboard() {
         <div className="container mx-auto mt-8 px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Available Rooms Card */}
-            <div className="bg-white bg-opacity-90 rounded-lg shadow-lg p-6">
-              <h3 className="text-xl font-semibold mb-2">Phòng trống</h3>
-              <p className="text-3xl font-bold text-blue-600">{availableRooms}</p>
+            <div className="backdrop-blur-md bg-white/20 border border-white/30 rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-semibold mb-2 text-white">Phòng trống</h3>
+              <p className="text-3xl font-bold text-blue-400">{availableRooms}</p>
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white bg-opacity-90 rounded-lg shadow-lg p-6">
-              <h3 className="text-xl font-semibold mb-4">Thao tác nhanh</h3>
+            <div className="backdrop-blur-md bg-white/20 border border-white/30 rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-semibold mb-4 text-white">Thao tác nhanh</h3>
               <div className="grid grid-cols-2 gap-4">
                 <Link
                   to="/finding-room"
-                  className="bg-blue-500 text-white p-3 rounded-lg text-center hover:bg-blue-600 transition"
+                  className="bg-blue-500/80 hover:bg-blue-600/80 text-white p-3 rounded-lg text-center transition"
                 >
                   Tìm phòng
                 </Link>
                 <Link
                   to="/booking-manager"
-                  className="bg-green-500 text-white p-3 rounded-lg text-center hover:bg-green-600 transition"
+                  className="bg-green-500/80 hover:bg-green-600/80 text-white p-3 rounded-lg text-center transition"
                 >
                   Đặt chỗ của tôi
                 </Link>
@@ -164,11 +159,11 @@ export default function UserDashboard() {
             </div>
 
             {/* Support Card */}
-            <div className="bg-white bg-opacity-90 rounded-lg shadow-lg p-6">
-              <h3 className="text-xl font-semibold mb-4">Hỗ trợ</h3>
+            <div className="backdrop-blur-md bg-white/20 border border-white/30 rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-semibold mb-4 text-white">Hỗ trợ</h3>
               <Link
                 to="/support"
-                className="block bg-purple-500 text-white p-3 rounded-lg text-center hover:bg-purple-600 transition"
+                className="block bg-purple-500/80 hover:bg-purple-600/80 text-white p-3 rounded-lg text-center transition"
               >
                 Liên hệ hỗ trợ
               </Link>
@@ -186,22 +181,22 @@ export default function UserDashboard() {
               {rooms.map((room) => (
                 <div
                   key={room.room_id}
-                  className="bg-white bg-opacity-90 rounded-lg shadow-lg p-6"
+                  className="backdrop-blur-md bg-white/30 border border-white/30 rounded-lg shadow-lg p-6"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-xl font-semibold">
+                      <h3 className="text-xl font-semibold text-white">
                         Phòng {room.location} - {room.building}
                       </h3>
-                      <p className="text-gray-600">Tầng {room.floor}</p>
+                      <p className="text-gray-200">Tầng {room.floor}</p>
                     </div>
                     <span
                       className={`px-3 py-1 rounded-full text-sm ${
                         room.room_status === "Available"
-                          ? "bg-green-100 text-green-800"
+                          ? "bg-green-400/70 text-green-900"
                           : room.room_status === "Occupied"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-yellow-100 text-yellow-800"
+                          ? "bg-red-400/70 text-red-900"
+                          : "bg-yellow-400/70 text-yellow-900"
                       }`}
                     >
                       {room.room_status === "Available"
@@ -211,7 +206,7 @@ export default function UserDashboard() {
                         : "Bảo trì"}
                     </span>
                   </div>
-                  <div className="space-y-2 mb-4">
+                  <div className="space-y-2 mb-4 text-white">
                     <p><span className="font-medium">Loại:</span> {room.room_type === "group" ? "Nhóm" : "Đơn"}</p>
                     <p><span className="font-medium">Còn trống:</span> {room.available_seats} vị trí</p>
                     <p><span className="font-medium">Thiết bị:</span> {room.devices || "Không có"}</p>
@@ -220,20 +215,20 @@ export default function UserDashboard() {
                     <button
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
                         room.room_status === "Available"
-                          ? "bg-blue-500 hover:bg-blue-600 text-white"
-                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                          ? "bg-blue-500/80 hover:bg-blue-600/80 text-white"
+                          : "bg-gray-400/50 text-gray-300 cursor-not-allowed"
                       }`}
                       onClick={() => room.room_status === "Available" && handleBookNow(room.room_id)}
                       disabled={room.room_status !== "Available"}
                     >
                       Đặt chỗ ngay
                     </button>
-                    <button
-                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition"
+                    {/* <button
+                      className="flex-1 bg-gray-500/80 hover:bg-gray-600/80 text-white py-2 px-4 rounded-lg font-medium transition"
                       onClick={() => navigate("/room-details", { state: { roomId: room.room_id } })}
                     >
                       Chi tiết
-                    </button>
+                    </button> */}
                   </div>
                 </div>
               ))}
@@ -243,7 +238,7 @@ export default function UserDashboard() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-white py-6 mt-8">
+      <footer className="backdrop-blur-md bg-gray-800/70 border-t border-white/10 text-white py-6 mt-8">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
