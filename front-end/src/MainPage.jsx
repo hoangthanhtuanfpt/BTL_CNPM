@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import bg from "./assets/Mainpage.jpg";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import toast from 'react-hot-toast';
 
 function RoomBox({ data, onBookingSuccess }) {
@@ -39,34 +39,41 @@ function RoomBox({ data, onBookingSuccess }) {
 
   if (!data) return null;
   return (
-    <div className="min-w-[150px] max-w-[600px] bg-gray-800 bg-opacity-80 p-4 shadow-lg rounded-lg grid grid-cols-2 font-medium h-48">
-      <div className="text-white col-span-1 grid grid-rows-6">
-        <p className="row-span-1 font-medium">Phòng {data.location}</p>
-        <p>Tầng {data.location?.[0]}</p>
-        <p
-          className={`text-center w-20  rounded font-semibold ${
+    <div className="backdrop-blur-md bg-white/30 border border-white/30 rounded-lg shadow-lg p-6">
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h3 className="text-xl font-semibold text-white">
+            Phòng {data.location}
+          </h3>
+          <p className="text-gray-200">Tầng {data.location?.[0]}</p>
+        </div>
+        <span
+          className={`px-3 py-1 rounded-full text-sm ${
             data.room_status === "Available"
-              ? "bg-green-300 text-black"
+              ? "bg-green-400/70 text-green-900"
               : data.room_status === "Occupied"
-              ? "bg-red-400 text-white"
-              : "bg-yellow-300 text-black"
+              ? "bg-red-400/70 text-red-900"
+              : "bg-yellow-400/70 text-yellow-900"
           }`}
         >
           {data.room_status === "Available"
             ? "Trống"
             : data.room_status === "Occupied"
-            ? "Đầy"
+            ? "Đã đầy"
             : "Bảo trì"}
-        </p>
-
-        <p>Loại: {data.room_type === "group" ? "Nhóm" : "Đơn"}</p>
-        <p>Còn trống: {data.available_seats ?? 0} vị trí</p>
-        <p className="truncate max-w-full">Thiết bị: {data.devices}</p>
+        </span>
       </div>
-      <div className="flex justify-center items-center">
+      <div className="space-y-2 mb-4 text-white">
+        <p><span className="font-medium">Loại:</span> {data.room_type === "group" ? "Nhóm" : "Đơn"}</p>
+        <p><span className="font-medium">Còn trống:</span> {data.available_seats || 0} vị trí</p>
+        <p><span className="font-medium">Thiết bị:</span> {data.devices || "Không có"}</p>
+      </div>
+      <div className="flex space-x-3">
         <button
-          className={`bg-blue-500 hover:bg-blue-700 text-white rounded-lg px-6 font-medium transition duration-200 h-[66px] ${
-            data.room_status !== "Available" ? "opacity-50 cursor-not-allowed" : ""
+          className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
+            data.room_status === "Available"
+              ? "bg-blue-500/80 hover:bg-blue-600/80 text-white"
+              : "bg-gray-400/50 text-gray-300 cursor-not-allowed"
           }`}
           onClick={handleBookNow}
           disabled={data.room_status !== "Available"}
@@ -81,7 +88,22 @@ function RoomBox({ data, onBookingSuccess }) {
 export default function MainPage() {
   const [roomData, setRoomData] = useState([]);
   const [bookedData, setBookedData] = useState([]);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (showUserMenu && !event.target.closest('.user-menu-container')) {
+        setShowUserMenu(false);
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserMenu]);
 
   const fetchRoomData = async () => {
     try {
@@ -139,137 +161,157 @@ export default function MainPage() {
     navigate("/");
   };
 
+  const toggleUserMenu = (e) => {
+    e.stopPropagation();
+    setShowUserMenu(!showUserMenu);
+  };
+
   return (
-    <div
-      className="flex flex-col min-h-screen bg-cover bg-center"
+    <div 
+      className="min-h-screen"
       style={{
         backgroundImage: `url(${bg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
       }}
     >
-      <div className="flex-grow items-center relative p-4 z-10 h-[80%]">
-        <div className="flex flex-grow items-center space-x-4 mb-4">
-          <div className="w-30% h-24 bg-white bg-opacity-15 p-4 shadow-lg rounded-lg border-2 border-gray-400 flex flex-col justify-center mr-8">
-            <p className="font-bold text-2xl">Smart Study Space Management &</p>
-            <p className="font-bold text-2xl">Reservation System at HCMUT</p>
-          </div>
-          <div className="flex-grow flex">
-            <button
-              className="flex-grow bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200"
-              onClick={() => navigate("/main")}
-            >
-              Trang chủ
-            </button>
-            <button 
-              className="ml-4 flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
-              onClick={() => navigate("/finding-room")}
-            >
-              Tìm chỗ
-            </button>
-            <button
-              className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
-              onClick={() => navigate("/booking-manager")}
-            >
-              Quản lý đặt chỗ
-            </button>
-            <button 
-              className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
-              onClick={() => navigate("/FeedbackForm")}
-            >
-              Báo cáo
-            </button>
-            <button 
-              className="flex-grow hover:text-gray-100 text-black py-2 px-4 rounded-lg font-medium transition duration-200"
-              onClick={() => navigate("/support")}
-            >
-              Hỗ trợ
-            </button>
-            <div className="relative">
-              <button 
-                className="bg-black hover:bg-gray-100 hover:text-black text-white py-2 px-8 rounded-2xl transition duration-200 mr-10"
-                onClick={() => navigate("/UserProfile")}
-              >
-                <i className="fas fa-user"></i>
-              </button>
-              <button
-                className="bg-red-500 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200"
-                onClick={handleLogout}
-              >
-                Đăng xuất
-              </button>
+      {/* Main content */}
+      <div className="relative z-10">
+        {/* Header */}
+        <div className="backdrop-blur-sm bg-white/10 border border-white/20 shadow-lg p-4 relative z-20">
+          <div className="container mx-auto flex items-center justify-between">
+            <div className="text-white">
+              <h1 className="text-2xl font-bold">Smart Study Space Management</h1>
+              <p className="text-sm">HCMUT Reservation System</p>
+            </div>
+            <div className="flex items-center space-x-6">
+              <Link to="/main" className="text-white hover:text-blue-300 transition">Trang chủ</Link>
+              <Link to="/finding-room" className="text-white hover:text-blue-300 transition">Tìm chỗ</Link>
+              <Link to="/booking-manager" className="text-white hover:text-blue-300 transition">Quản lý đặt chỗ</Link>
+              <Link to="/FeedbackForm" className="text-white hover:text-blue-300 transition">Báo cáo</Link>
+              <Link to="/support" className="text-white hover:text-blue-300 transition">Hỗ trợ</Link>
+              
+              {/* User Menu with fixed positioning */}
+              <div className="user-menu-container relative">
+                <button
+                  onClick={toggleUserMenu}
+                  className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full transition"
+                >
+                  <i className="fas fa-user"></i>
+                </button>
+                
+                {showUserMenu && (
+                  <div 
+                    className="fixed right-4 mt-2 w-48 backdrop-blur-md bg-white/90 border border-white/30 rounded-lg shadow-2xl py-2"
+                    style={{ zIndex: 9999 }}
+                  >
+                    <Link
+                      to="/UserProfile"
+                      className="block px-4 py-2 text-gray-800 hover:bg-white/40 transition"
+                    >
+                      Hồ sơ
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-red-600 hover:bg-white/40 transition"
+                    >
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-8 mt-16">
-          <div className="min-w-[150px] max-w-[600px] bg-gray-800 bg-opacity-80 p-4 shadow-lg rounded-lg h-48">
-            <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full">
-              <p className="text-white text-center text-lg flex items-center justify-center col-span-1 row-span-1 font-medium">
-                Số phòng trống
-                <br />
+        {/* Dashboard Stats */}
+        <div className="container mx-auto mt-8 px-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Available Rooms Card */}
+            <div className="backdrop-blur-md bg-white/20 border border-white/30 rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-semibold mb-2 text-white">Phòng trống</h3>
+              <p className="text-3xl font-bold text-blue-400">
                 {roomData.filter((r) => r.room_status === "Available").length}
               </p>
-              <button 
-                className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 col-span-1 row-span-1"
-                onClick={() => navigate("/UserDashboard")}
-              >
-                Quản lý phòng
-              </button>
-              <button 
-                className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 col-span-1 row-span-1"
-                onClick={() => navigate("/booking-manager")}
-              >
-                Đặt chỗ của tôi
-                <br /> {bookedData.length}
-              </button>
-              <button 
-                className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition duration-200 col-span-1 row-span-1"
-                onClick={() => navigate("/history")}
+            </div>
+
+            {/* Quick Actions */}
+            <div className="backdrop-blur-md bg-white/20 border border-white/30 rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-semibold mb-4 text-white">Thao tác nhanh</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <Link
+                  to="/UserDashboard"
+                  className="bg-blue-500/80 hover:bg-blue-600/80 text-white p-3 rounded-lg text-center transition"
+                >
+                  Quản lý phòng
+                </Link>
+                <Link
+                  to="/booking-manager"
+                  className="bg-green-500/80 hover:bg-green-600/80 text-white p-3 rounded-lg text-center transition"
+                >
+                  Đặt chỗ của tôi ({bookedData.length})
+                </Link>
+              </div>
+            </div>
+
+            {/* Support Card */}
+            <div className="backdrop-blur-md bg-white/20 border border-white/30 rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-semibold mb-4 text-white">Hỗ trợ</h3>
+              {/* <Link
+                to="/history"
+                className="block bg-purple-500/80 hover:bg-purple-600/80 text-white p-3 rounded-lg text-center transition mb-3"
               >
                 Lịch sử đặt chỗ
-              </button>
+              </Link> */}
+              <Link
+                to="/support"
+                className="block bg-purple-500/80 hover:bg-purple-600/80 text-white p-3 rounded-lg text-center transition"
+              >
+                Liên hệ hỗ trợ
+              </Link>
             </div>
           </div>
-
-          {roomData[0] && <RoomBox data={roomData[0]} onBookingSuccess={fetchRoomData} />}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 px-8 mt-8">
-          {roomData.slice(1).map((room, idx) => (
-            <RoomBox key={room.room_id || idx} data={room} onBookingSuccess={fetchRoomData} />
-          ))}
+        {/* Room List */}
+        <div className="container mx-auto mt-8 px-4 pb-8 relative z-10">
+          <h2 className="text-2xl font-bold text-white mb-6">Danh sách phòng</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {roomData.map((room, idx) => (
+              <RoomBox key={room.room_id || idx} data={room} onBookingSuccess={fetchRoomData} />
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="bottom-0 left-0 right-0 text-center text-white py-6 z-10 bg-gray-600">
-        <p className="text-xs text-left ml-6 text-gray-300">
-          Tổ kỹ thuật P.DT / Technician
-        </p>
-        <p className="text-xs text-left ml-6 text-gray-300">
-          ĐT (Tel.) : (84-8) 38647256 - 5258
-        </p>
-        <p className="text-xs text-left ml-6 text-gray-300">
-          Quý Thầy/Cô chưa có tài khoản(hoặc quên mật khẩu) nhà trường vui lòng
-          liên hệ Trung tâm Dữ liệu & Công nghệ Thông tin, phòng 109A5 để được
-          hỗ trợ.
-        </p>
-        <p className="text-xs text-left ml-6 text-gray-300">
-          Email: ddthu@hcmut.edu.vn
-        </p>
-        <p className="text-xs text-left ml-6 text-gray-300">
-          (For HCMUT account, please contact to : Data and Information
-          Technology Center)
-        </p>
-        <p className="text-xs text-left ml-6 text-gray-300">
-          Email : dl-cntt@hcmut.edu.vn
-        </p>
-        <p className="text-xs text-left ml-6 text-gray-300">
-          (For HCMUT account, please contact to : Data and Information
-          Technology Center)
-        </p>
-        <p className="text-xs text-left ml-6 text-gray-300">
-          ĐT (Tel.) : (84-8) 38647256 - 5200
-        </p>
-      </div>
+      {/* Footer */}
+      <footer className="backdrop-blur-md bg-gray-800/70 border-t border-white/10 text-white py-6 mt-8 relative z-10">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Liên hệ</h4>
+              <p className="text-sm text-gray-300">Email: ddthu@hcmut.edu.vn</p>
+              <p className="text-sm text-gray-300">ĐT (Tel.): (84-8) 38647256 - 5258</p>
+              <p className="text-sm text-gray-300">
+                Quý Thầy/Cô chưa có tài khoản(hoặc quên mật khẩu) nhà trường vui lòng
+                liên hệ Trung tâm Dữ liệu & Công nghệ Thông tin, phòng 109A5 để được
+                hỗ trợ.
+              </p>
+            </div>
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Hỗ trợ kỹ thuật</h4>
+              <p className="text-sm text-gray-300">Trung tâm Dữ liệu & Công nghệ Thông tin</p>
+              <p className="text-sm text-gray-300">Email: dl-cntt@hcmut.edu.vn</p>
+              <p className="text-sm text-gray-300">ĐT (Tel.): (84-8) 38647256 - 5200</p>
+              <p className="text-sm text-gray-300">
+                (For HCMUT account, please contact to : Data and Information
+                Technology Center)
+              </p>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
